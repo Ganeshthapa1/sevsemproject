@@ -1,0 +1,23 @@
+# Environment variables
+.env
+.env.production
+
+# Dependencies
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Upload directory (keep the directory but not the files)
+uploads/*
+!uploads/.gitkeep
+
+# MongoDB
+data/
+
+# misc
+.DS_Store
+*.pem
+

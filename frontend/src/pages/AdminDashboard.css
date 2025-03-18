@@ -1,0 +1,40 @@
+/* AdminDashboard.css */
+
+.app-bar {
+  width: calc(100% - 240px);
+  margin-left: 240px;
+}
+
+.app-bar-mobile {
+  width: 100%;
+  margin-left: 0;
+}
+
+.toolbar {
+  justify-content: space-between;
+  position: relative;
+}
+
+.profile-icon-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.drawer-paper {
+  box-sizing: border-box;
+  width: 240px;
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 24px;
+  width: calc(100% - 240px);
+}
+
+.main-content-mobile {
+  width: 100%;
+}
