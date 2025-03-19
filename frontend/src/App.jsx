@@ -39,6 +39,11 @@ import OrderPayment from "./pages/OrderPayment";
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 
+// Conditionally import the test page only in development
+const EsewaTestPage = import.meta.env.DEV 
+  ? React.lazy(() => import('./pages/EsewaTestPage')) 
+  : null;
+
 // Create a theme instance
 const theme = createTheme({
   palette: {
@@ -155,6 +160,18 @@ const AppContent = () => {
             }
           />
           <Route path="/payment/:orderId" element={<PrivateRoute><OrderPayment /></PrivateRoute>} />
+          
+          {/* Development-only routes */}
+          {import.meta.env.DEV && EsewaTestPage && (
+            <Route 
+              path="/esewa-test" 
+              element={
+                <React.Suspense fallback={<div>Loading test tools...</div>}>
+                  <EsewaTestPage />
+                </React.Suspense>
+              } 
+            />
+          )}
         </Routes>
       </Box>
       {showFooter && <Footer />}
