@@ -52,6 +52,7 @@ const OrderRow = ({ order, onPaymentUpdate }) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cod");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
   
   const getStatusColor = (status) => {
     switch (status) {
@@ -112,6 +113,36 @@ const OrderRow = ({ order, onPaymentUpdate }) => {
       setPaymentError("Failed to set payment method. Please try again.");
     } finally {
       setPaymentLoading(false);
+    }
+  };
+  
+  // Function to verify payment status for eSewa
+  const verifyEsewaPayment = async () => {
+    if (order.paymentMethod !== 'esewa' || order.paymentStatus === 'completed') {
+      return;
+    }
+    
+    setVerifyingPayment(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/api/payments/esewa/verify`,
+        { 
+          orderId: order._id,
+          refId: localStorage.getItem('esewa_pending_transaction_id') || order.transactionId
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      if (response.data.success) {
+        onPaymentUpdate(); // Refresh order data
+      }
+    } catch (error) {
+      console.error("Error verifying payment:", error);
+    } finally {
+      setVerifyingPayment(false);
     }
   };
   
@@ -176,7 +207,30 @@ const OrderRow = ({ order, onPaymentUpdate }) => {
                   color={order.paymentStatus === 'completed' ? 'success' : 'default'}
                   size="small"
                 />
-                {order.paymentMethod !== 'cod' && order.paymentStatus !== 'completed' && (
+                {order.paymentMethod === 'esewa' && order.paymentStatus !== 'completed' && (
+                  <>
+                    <Button 
+                      variant="outlined" 
+                      size="small" 
+                      color="primary"
+                      sx={{ ml: 1 }}
+                      onClick={() => window.location.href = `/payment/${order._id}`}
+                    >
+                      Pay Now
+                    </Button>
+                    <Button
+                      variant="text"
+                      size="small"
+                      color="secondary"
+                      sx={{ ml: 1 }}
+                      onClick={verifyEsewaPayment}
+                      disabled={verifyingPayment}
+                    >
+                      {verifyingPayment ? "Checking..." : "Verify Payment"}
+                    </Button>
+                  </>
+                )}
+                {order.paymentMethod !== 'esewa' && order.paymentMethod !== 'cod' && order.paymentStatus !== 'completed' && (
                   <Button 
                     variant="outlined" 
                     size="small" 

@@ -67,6 +67,11 @@ const EsewaPayment = ({ order, onError }) => {
       }
       console.log("Form values:", formValues);
       
+      // Store order ID in localStorage for verification when we return from eSewa
+      localStorage.setItem('esewa_pending_order_id', order._id);
+      localStorage.setItem('esewa_pending_transaction_id', paymentData?.paymentData.transaction_uuid);
+      localStorage.setItem('esewa_payment_timestamp', new Date().toISOString());
+      
       // Submit the form
       formRef.current.submit();
     }
