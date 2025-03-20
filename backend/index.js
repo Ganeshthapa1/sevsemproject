@@ -19,11 +19,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Serve uploaded files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Test route for eSewa integration
-app.get("/test-esewa", (req, res) => {
-  res.sendFile(path.join(__dirname, "test_esewa.html"));
-});
-
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI)

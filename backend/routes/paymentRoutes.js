@@ -5,10 +5,14 @@ const {
     initEsewaPayment, 
     esewaPaymentSuccess, 
     esewaPaymentFailure,
+<<<<<<< HEAD
     verifyEsewaPayment,
     generateEsewaSignature,
     verifyPayment,
     verifyAllPendingPayments
+=======
+    verifyEsewaPayment
+>>>>>>> parent of 0650841 (asdfdfdf)
 } = require("../controllers/paymentController");
 
 // Initialize eSewa payment (requires authentication)
@@ -21,6 +25,7 @@ router.get("/esewa/failure", esewaPaymentFailure);
 // Verify payment (requires authentication)
 router.post("/esewa/verify", auth, verifyEsewaPayment);
 
+<<<<<<< HEAD
 // Manual payment verification endpoints
 router.post('/verify', auth, verifyPayment);
 router.post('/verify-all-pending', auth, verifyAllPendingPayments);
@@ -73,6 +78,8 @@ router.post("/esewa/test-signature", (req, res) => {
   }
 });
 
+=======
+>>>>>>> parent of 0650841 (asdfdfdf)
 // Debug endpoint for environment variables
 router.get("/config/info", (req, res) => {
   res.json({

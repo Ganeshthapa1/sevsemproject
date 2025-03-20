@@ -39,8 +39,9 @@ function httpsRequest(url) {
  */
 const generateEsewaSignature = (data) => {
   try {
-    // Format using comma-separated key=value pairs as shown in the working example
-    const dataString = `total_amount=${data.total_amount},transaction_uuid=${data.transaction_uuid},product_code=${data.product_code}`;
+    // Format must be exactly as their documentation specifies
+    // total_amount+transaction_uuid+product_code
+    const dataString = `${data.total_amount}${data.transaction_uuid}${data.product_code}`;
 
     console.log("Data string for signature:", dataString);
     console.log("Secret key:", ESEWA_SECRET_KEY);
@@ -58,9 +59,6 @@ const generateEsewaSignature = (data) => {
     throw error;
   }
 };
-
-// Export the signature generation function for testing
-exports.generateEsewaSignature = generateEsewaSignature;
 
 /**
  * Initialize eSewa payment
@@ -91,37 +89,29 @@ exports.initEsewaPayment = async (req, res) => {
       return res.status(400).json({ message: "Invalid payment method for this order" });
     }
     
-    // Generate a unique transaction UUID - using the order ID
+    // Generate a simple transaction UUID - use timestamp to make it unique
     const transactionUuid = `TX${Date.now()}`;
     
     // Store transaction ID with the order
     order.transactionId = transactionUuid;
     await order.save();
     
-    // Calculate amount as integer (no decimals)
+    // Calculate amount as integer
     const amount = Math.floor(order.totalAmount).toString();
     
-    // Create payment data according to eSewa v2 API requirements
-    // Following exact format specified in eSewa's documentation
+    // Create payment data with bare minimum required fields exactly as in eSewa docs
     const paymentData = {
       amount: amount,
       total_amount: amount,
       transaction_uuid: transactionUuid,
       product_code: ESEWA_PRODUCT_CODE,
-      product_service_charge: "0",
-      product_delivery_charge: "0",
-      tax_amount: "0",
       success_url: `${BACKEND_URL}/api/payments/esewa/success`,
       failure_url: `${BACKEND_URL}/api/payments/esewa/failure`,
       signed_field_names: "total_amount,transaction_uuid,product_code",
     };
     
     // Generate signature
-    paymentData.signature = generateEsewaSignature({
-      total_amount: paymentData.total_amount,
-      transaction_uuid: paymentData.transaction_uuid,
-      product_code: paymentData.product_code
-    });
+    paymentData.signature = generateEsewaSignature(paymentData);
     
     console.log("Full payment data:", paymentData);
     
@@ -142,6 +132,7 @@ exports.initEsewaPayment = async (req, res) => {
  */
 exports.esewaPaymentSuccess = async (req, res) => {
   try {
+<<<<<<< HEAD
     console.log("eSewa success callback received:", req.query);
     console.log("Request headers:", req.headers);
     console.log("Full success URL path:", req.originalUrl);
@@ -280,6 +271,34 @@ exports.esewaPaymentSuccess = async (req, res) => {
     // If execution reaches here, we couldn't identify the order
     console.error("Could not identify order from success callback data");
     return res.redirect(`${FRONTEND_URL}/orders?payment=manual-verification-needed`);
+=======
+    const { transaction_uuid, status, refId } = req.query;
+    
+    if (!transaction_uuid) {
+      return res.status(400).send('<h1>Invalid payment response</h1><p>Please go back to the application.</p>');
+    }
+    
+    // Find the order by transaction ID directly
+    const order = await Order.findOne({ transactionId: transaction_uuid });
+    
+    if (!order) {
+      return res.status(404).send('<h1>Order not found</h1><p>Please contact customer support.</p>');
+    }
+    
+    // Update order payment status
+    order.paymentStatus = "completed";
+    order.paymentDetails = {
+      gateway: "esewa",
+      referenceId: refId || transaction_uuid,
+      amount: order.totalAmount,
+      paidAt: new Date()
+    };
+    
+    await order.save();
+    
+    // Redirect to order confirmation
+    res.redirect(`${FRONTEND_URL}/order-confirmation/${order._id}?payment=success`);
+>>>>>>> parent of 0650841 (asdfdfdf)
     
   } catch (error) {
     console.error("Error processing eSewa payment success:", error);
@@ -292,57 +311,26 @@ exports.esewaPaymentSuccess = async (req, res) => {
  */
 exports.esewaPaymentFailure = async (req, res) => {
   try {
-    console.log("eSewa failure callback received:", req.query);
-    
-    // Check if we have encoded data in query
-    if (req.query.data) {
-      try {
-        // Try to decode data if it comes in the format from the docs
-        const encodedData = req.query.data;
-        const decodedData = Buffer.from(encodedData, 'base64').toString();
-        const paymentData = JSON.parse(decodedData);
-        console.log("Decoded payment data:", paymentData);
-        
-        if (paymentData.transaction_uuid) {
-          // Find order by transaction ID
-          const order = await Order.findOne({ transactionId: paymentData.transaction_uuid });
-          
-          if (order) {
-            // Update order payment status
-            order.paymentStatus = "failed";
-            await order.save();
-            console.log(`Order ${order._id} payment marked as failed`);
-            
-            // Redirect to payment page
-            return res.redirect(`${FRONTEND_URL}/payment/${order._id}?payment=failed`);
-          }
-        }
-      } catch (decodeError) {
-        console.error("Failed to decode payment data:", decodeError);
-      }
-    }
-    
-    // Traditional method - look for transaction_uuid directly in query params
     const { transaction_uuid, status } = req.query;
     
-    if (transaction_uuid) {
-      // Find the order by transaction ID directly
-      const order = await Order.findOne({ transactionId: transaction_uuid });
-      
-      if (order) {
-        // Update order payment status
-        order.paymentStatus = "failed";
-        await order.save();
-        console.log(`Order ${order._id} payment marked as failed`);
-        
-        // Redirect to payment page
-        return res.redirect(`${FRONTEND_URL}/payment/${order._id}?payment=failed`);
-      }
+    if (!transaction_uuid) {
+      return res.redirect(`${FRONTEND_URL}/orders?payment=failed`);
     }
     
-    // If execution reaches here, we couldn't identify the order
-    console.error("Could not identify order from failure callback data");
-    return res.redirect(`${FRONTEND_URL}/orders?payment=failed`);
+    // Find the order by transaction ID directly
+    const order = await Order.findOne({ transactionId: transaction_uuid });
+    
+    if (order) {
+      // Update order payment status
+      order.paymentStatus = "failed";
+      await order.save();
+      
+      // Redirect to payment page
+      return res.redirect(`${FRONTEND_URL}/payment/${order._id}?payment=failed`);
+    }
+    
+    // If order not found, redirect to orders page
+    res.redirect(`${FRONTEND_URL}/orders?payment=failed`);
     
   } catch (error) {
     console.error("Error processing eSewa payment failure:", error);

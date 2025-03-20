@@ -57,23 +57,20 @@ const EsewaPayment = ({ order, onError }) => {
   const handlePayment = () => {
     if (formRef.current) {
       console.log("Submitting eSewa payment form...");
-      console.log("Form data:", paymentData?.paymentData);
-      
-      // Log all form values for debugging
-      const formData = new FormData(formRef.current);
-      const formValues = {};
-      for (let [key, value] of formData.entries()) {
-        formValues[key] = value;
-      }
-      console.log("Form values:", formValues);
-      
-      // Submit the form
       formRef.current.submit();
     }
   };
 
   const toggleDebug = () => {
     setDebug(!debug);
+  };
+
+  const submitDirectForm = () => {
+    const form = document.getElementById('esewaDirectForm');
+    if (form) {
+      console.log("Submitting direct form...");
+      form.submit();
+    }
   };
 
   if (loading) {
@@ -156,52 +153,53 @@ const EsewaPayment = ({ order, onError }) => {
         </Paper>
       )}
       
-      {/* Visible eSewa payment form for direct debugging */}
+      {/* eSewa payment form */}
       <form
         ref={formRef}
         action="https://rc-epay.esewa.com.np/api/epay/main/v2/form"
         method="POST"
-        encType="application/x-www-form-urlencoded"
-        style={{ margin: '20px 0', padding: '15px', border: '1px solid #ddd', borderRadius: '4px', display: debug ? 'block' : 'none' }}
-      >
-        <Typography variant="subtitle2" gutterBottom sx={{ mb: 2 }}>Payment Form:</Typography>
-        {paymentData && Object.entries(paymentData.paymentData).map(([key, value]) => (
-          <div key={key} style={{ margin: '5px 0' }}>
-            <label style={{ display: 'inline-block', width: '200px', textAlign: 'right', marginRight: '10px' }}>
-              {key}:
-            </label>
-            <input 
-              type="text" 
-              name={key} 
-              defaultValue={value} 
-              style={{ width: '300px', padding: '5px' }}
-            />
-          </div>
-        ))}
-        <div style={{ marginTop: '15px' }}>
-          <Button
-            variant="contained"
-            color="warning"
-            onClick={handlePayment}
-            sx={{ mr: 1 }}
-          >
-            Submit Direct Form
-          </Button>
-        </div>
-      </form>
-      
-      {/* Hidden form for normal payment flow */}
-      <form
-        id="hiddenEsewaForm"
-        action="https://rc-epay.esewa.com.np/api/epay/main/v2/form"
-        method="POST"
-        encType="application/x-www-form-urlencoded"
         style={{ display: 'none' }}
       >
         {paymentData && Object.entries(paymentData.paymentData).map(([key, value]) => (
           <input key={key} type="hidden" name={key} value={value} />
         ))}
       </form>
+      
+      {/* Direct form for testing */}
+      {debug && paymentData && (
+        <form
+          id="esewaDirectForm"
+          action="https://rc-epay.esewa.com.np/api/epay/main/v2/form"
+          method="POST"
+          target="_blank"
+          style={{ margin: '20px 0', padding: '15px', border: '1px solid #ddd', borderRadius: '4px' }}
+        >
+          <Typography variant="subtitle2" gutterBottom sx={{ mb: 2 }}>Test directly:</Typography>
+          {paymentData && Object.entries(paymentData.paymentData).map(([key, value]) => (
+            <div key={key} style={{ margin: '5px 0' }}>
+              <label style={{ display: 'inline-block', width: '200px', textAlign: 'right', marginRight: '10px' }}>
+                {key}:
+              </label>
+              <input 
+                type="text" 
+                name={key} 
+                defaultValue={value} 
+                style={{ width: '300px', padding: '5px' }}
+              />
+            </div>
+          ))}
+          <div style={{ marginTop: '15px' }}>
+            <Button
+              variant="contained"
+              color="warning"
+              onClick={submitDirectForm}
+              sx={{ mr: 1 }}
+            >
+              Submit Direct Form
+            </Button>
+          </div>
+        </form>
+      )}
       
       <Button
         variant="contained"
