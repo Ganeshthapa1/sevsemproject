@@ -20,20 +20,22 @@ import {
 import { Link } from "react-router-dom";
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
 
 const categories = [
   "All",
-  "Fashion",
-  "Home & Kitchen",
-  "Art",
-  "Spiritual",
-  "Food",
-  "Jewelry",
-  "Handicrafts",
+  "clothing",
+  "Clothing",
+  "electronics",
+  "home",
+  "fashion",
+  "accessories",
+  "art",
+  "handicraft",
+  "food",
 ];
 
-const ProductGrid = () => {
+const ProductGrid = ({ limit }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,19 +44,28 @@ const ProductGrid = () => {
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [priceRange, setPriceRange] = useState([0, 10000]);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get(`${API_URL}/api/products`);
-        setProducts(response.data);
-        setFilteredProducts(response.data);
+        console.log(`Fetching products from: ${API_URL}/products`);
+        const response = await axios.get(`${API_URL}/products`);
+        console.log('Products data:', response.data);
+        
+        const allProducts = response.data;
+        setProducts(allProducts);
+        
+        // If limit is provided, limit the initial display
+        const limitedProducts = limit ? allProducts.slice(0, limit) : allProducts;
+        setFilteredProducts(limitedProducts);
 
         // Set initial price range based on products
-        const prices = response.data.map((p) => p.price);
-        const maxPrice = Math.ceil(Math.max(...prices));
-        setPriceRange([0, maxPrice]);
+        if (allProducts.length > 0) {
+          const prices = allProducts.map((p) => p.price);
+          const maxPrice = Math.ceil(Math.max(...prices, 1000));
+          setPriceRange([0, maxPrice]);
+        }
 
         setError(null);
       } catch (error) {
@@ -66,7 +77,7 @@ const ProductGrid = () => {
     };
 
     fetchProducts();
-  }, []);
+  }, [limit]);
 
   // Apply filters whenever filter states change
   useEffect(() => {
@@ -94,8 +105,14 @@ const ProductGrid = () => {
         product.price >= priceRange[0] && product.price <= priceRange[1]
     );
 
+    // Apply limit if provided and not filtering
+    if (limit && !searchTerm && selectedCategory === "All" && 
+        priceRange[0] === 0 && priceRange[1] >= 1000) {
+      filtered = filtered.slice(0, limit);
+    }
+
     setFilteredProducts(filtered);
-  }, [searchTerm, selectedCategory, priceRange, products]);
+  }, [searchTerm, selectedCategory, priceRange, products, limit]);
 
   const handlePriceChange = (event, newValue) => {
     setPriceRange(newValue);
@@ -127,6 +144,67 @@ const ProductGrid = () => {
     );
   }
 
+  // If no products after loading completes
+  if (products.length === 0) {
+    return (
+      <Alert severity="info" sx={{ mt: 2 }}>
+        No products available at this time.
+      </Alert>
+    );
+  }
+
+  // For home page, just show products without filters
+  if (limit) {
+    return (
+      <Grid container spacing={3}>
+        {filteredProducts.length === 0 ? (
+          <Grid item xs={12}>
+            <Alert severity="info">No products match your filters.</Alert>
+          </Grid>
+        ) : (
+          filteredProducts.map((product) => (
+            <Grid item xs={6} sm={4} md={3} key={product._id}>
+              <Card
+                component={Link}
+                to={`/product/${product._id}`}
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  textDecoration: "none",
+                  transition: "transform 0.2s",
+                  "&:hover": {
+                    transform: "scale(1.02)",
+                  },
+                }}
+              >
+                <CardMedia
+                  component="img"
+                  height="140"
+                  image={product.images && product.images.length > 0 ? `${API_URL}${product.images[0]}` : '/placeholder-image.png'}
+                  alt={product.name}
+                  sx={{ objectFit: "cover" }}
+                />
+                <CardContent>
+                  <Typography variant="subtitle1" component="div" sx={{ fontWeight: "bold" }}>
+                    {product.name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {product.description.substring(0, 60)}...
+                  </Typography>
+                  <Typography variant="h6" color="primary">
+                    Rs. {product.price}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))
+        )}
+      </Grid>
+    );
+  }
+
+  // For products page, show with filters
   return (
     <Grid container spacing={3}>
       {/* Filters Section - Left Side */}
@@ -170,8 +248,8 @@ const ProductGrid = () => {
                 onChange={handlePriceChange}
                 valueLabelDisplay="auto"
                 min={0}
-                max={1000}
-                step={10}
+                max={Math.max(10000, priceRange[1])}
+                step={100}
               />
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                 <Typography>Rs. {priceRange[0]}</Typography>
@@ -184,14 +262,14 @@ const ProductGrid = () => {
 
       {/* Products Grid - Right Side */}
       <Grid item xs={12} md={9}>
-        <Grid container spacing={1}>
+        <Grid container spacing={2}>
           {filteredProducts.length === 0 ? (
             <Grid item xs={12}>
               <Alert severity="info">No products match your filters.</Alert>
             </Grid>
           ) : (
             filteredProducts.map((product) => (
-              <Grid item xs={6} sm={4} md={3} lg={2} key={product._id}>
+              <Grid item xs={6} sm={4} md={4} lg={3} key={product._id}>
                 <Card
                   component={Link}
                   to={`/product/${product._id}`}
@@ -208,37 +286,28 @@ const ProductGrid = () => {
                 >
                   <CardMedia
                     component="img"
-                    height="120"
-                    image={`${API_URL}${product.imageUrl}`}
+                    height="180"
+                    image={product.images && product.images.length > 0 ? `${API_URL}${product.images[0]}` : '/placeholder-image.png'}
                     alt={product.name}
                     sx={{ objectFit: "cover" }}
                   />
-                  <CardContent sx={{ p: 1 }}>
+                  <CardContent sx={{ flexGrow: 1 }}>
                     <Typography
-                      variant="caption"
+                      variant="subtitle1"
                       component="div"
-                      sx={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontWeight: "bold",
-                      }}
+                      sx={{ fontWeight: "bold" }}
                     >
                       {product.name}
                     </Typography>
                     <Typography
-                      variant="caption"
+                      variant="body2"
                       color="text.secondary"
-                      sx={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 1,
-                        WebkitBoxOrient: "vertical",
-                        fontSize: "0.7rem",
-                      }}
+                      sx={{ mb: 1 }}
                     >
-                      {product.description}
+                      {product.description.substring(0, 60)}...
+                    </Typography>
+                    <Typography variant="h6" color="primary">
+                      Rs. {product.price}
                     </Typography>
                   </CardContent>
                 </Card>

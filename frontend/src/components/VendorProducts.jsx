@@ -27,6 +27,8 @@ import {
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
 const VendorProducts = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,10 +50,25 @@ const VendorProducts = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('/products/vendor');
+      console.log('Fetching vendor products...');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('You must be logged in');
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.get(`${API_URL}/products/vendor`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      console.log('Vendor products:', response.data);
       setProducts(response.data);
       setLoading(false);
     } catch (err) {
+      console.error('Failed to fetch products:', err);
       setError('Failed to fetch products');
       setLoading(false);
     }
@@ -120,22 +137,26 @@ const VendorProducts = () => {
     });
 
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('You must be logged in');
+        return;
+      }
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      };
+
       if (editingProduct) {
-        await axios.put(`/products/${editingProduct._id}`, formDataToSend, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
+        await axios.put(`${API_URL}/products/${editingProduct._id}`, formDataToSend, { headers });
       } else {
-        await axios.post('/products', formDataToSend, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
+        await axios.post(`${API_URL}/products`, formDataToSend, { headers });
       }
       fetchProducts();
       handleCloseDialog();
     } catch (err) {
+      console.error('Error saving product:', err);
       setError(err.response?.data?.message || 'Failed to save product');
     }
   };
@@ -143,9 +164,20 @@ const VendorProducts = () => {
   const handleDelete = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await axios.delete(`/products/${productId}`);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('You must be logged in');
+          return;
+        }
+
+        await axios.delete(`${API_URL}/products/${productId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
         fetchProducts();
       } catch (err) {
+        console.error('Error deleting product:', err);
         setError('Failed to delete product');
       }
     }
@@ -162,7 +194,7 @@ const VendorProducts = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">My Products</Typography>
+        <Typography variant="h4">Manage Products</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -178,42 +210,55 @@ const VendorProducts = () => {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
-        {products.map((product) => (
-          <Grid item xs={12} sm={6} md={4} key={product._id}>
-            <Card>
-              <CardMedia
-                component="img"
-                height="200"
-                image={product.image}
-                alt={product.name}
-              />
-              <CardContent>
-                <Typography gutterBottom variant="h6">
-                  {product.name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {product.description}
-                </Typography>
-                <Typography variant="h6" color="primary" sx={{ mt: 1 }}>
-                  ${product.price}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Stock: {product.stock}
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <IconButton onClick={() => handleOpenDialog(product)}>
-                  <EditIcon />
-                </IconButton>
-                <IconButton onClick={() => handleDelete(product._id)}>
-                  <DeleteIcon />
-                </IconButton>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      {products.length === 0 ? (
+        <Alert severity="info">
+          You don't have any products yet. Click "Add Product" to create your first product.
+        </Alert>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Image</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Category</TableCell>
+                <TableCell>Price</TableCell>
+                <TableCell>Stock</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {products.map((product) => (
+                <TableRow key={product._id}>
+                  <TableCell>
+                    {product.images && product.images.length > 0 ? (
+                      <img 
+                        src={`${API_URL}${product.images[0]}`} 
+                        alt={product.name} 
+                        style={{ width: 50, height: 50, objectFit: 'cover' }} 
+                      />
+                    ) : (
+                      'No image'
+                    )}
+                  </TableCell>
+                  <TableCell>{product.name}</TableCell>
+                  <TableCell>{product.category}</TableCell>
+                  <TableCell>${product.price}</TableCell>
+                  <TableCell>{product.stock}</TableCell>
+                  <TableCell>
+                    <IconButton onClick={() => handleOpenDialog(product)}>
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton onClick={() => handleDelete(product._id)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
@@ -290,6 +335,11 @@ const VendorProducts = () => {
                     onChange={handleImageChange}
                   />
                 </Button>
+                {formData.image && (
+                  <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                    Selected file: {formData.image.name}
+                  </Typography>
+                )}
               </Grid>
             </Grid>
           </DialogContent>

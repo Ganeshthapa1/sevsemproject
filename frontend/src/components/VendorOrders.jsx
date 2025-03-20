@@ -24,6 +24,8 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
 const VendorOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,10 +40,25 @@ const VendorOrders = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get('/orders/vendor');
+      console.log('Fetching vendor orders...');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('You must be logged in');
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.get(`${API_URL}/orders/vendor`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      console.log('Vendor orders:', response.data);
       setOrders(response.data);
       setLoading(false);
     } catch (err) {
+      console.error('Error fetching orders:', err);
       setError('Failed to fetch orders');
       setLoading(false);
     }
@@ -49,12 +66,28 @@ const VendorOrders = () => {
 
   const handleStatusUpdate = async () => {
     try {
-      await axios.put(`/orders/${selectedOrder._id}/status`, { status: newStatus });
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('You must be logged in');
+        return;
+      }
+
+      await axios.put(`${API_URL}/orders/${selectedOrder._id}/status`, 
+        { status: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
       fetchOrders();
       setOpenDialog(false);
       setSelectedOrder(null);
       setNewStatus('');
     } catch (err) {
+      console.error('Error updating order status:', err);
       setError('Failed to update order status');
     }
   };
@@ -95,54 +128,59 @@ const VendorOrders = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Vendor Orders
+        Manage Orders
       </Typography>
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Order ID</TableCell>
-              <TableCell>Customer</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Total Amount</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order._id}>
-                <TableCell>{order._id.slice(-6)}</TableCell>
-                <TableCell>{order.user.name}</TableCell>
-                <TableCell>
-                  {new Date(order.createdAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={order.status}
-                    color={getStatusColor(order.status)}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => {
-                      setSelectedOrder(order);
-                      setNewStatus(order.status);
-                      setOpenDialog(true);
-                    }}
-                  >
-                    Update Status
-                  </Button>
-                </TableCell>
+      
+      {orders.length === 0 ? (
+        <Alert severity="info">You don't have any orders yet.</Alert>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Order ID</TableCell>
+                <TableCell>Customer</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Total Amount</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {orders.map((order) => (
+                <TableRow key={order._id}>
+                  <TableCell>{order.orderNumber || order._id.slice(-6)}</TableCell>
+                  <TableCell>{order.user?.name || 'Unknown User'}</TableCell>
+                  <TableCell>
+                    {new Date(order.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>${order.totalAmount?.toFixed(2) || '0.00'}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={order.status}
+                      color={getStatusColor(order.status)}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setNewStatus(order.status);
+                        setOpenDialog(true);
+                      }}
+                    >
+                      Update Status
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
         <DialogTitle>Update Order Status</DialogTitle>

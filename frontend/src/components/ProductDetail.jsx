@@ -81,7 +81,7 @@ const ProductDetail = () => {
         <Grid item xs={12} md={6}>
           <img
             src={product.images && product.images.length > 0 
-              ? product.images[0] 
+              ? `${API_URL}${product.images[0]}` 
               : '/placeholder-image.jpg'}
             alt={product.name}
             style={{ width: "100%", height: "auto", maxHeight: "500px", objectFit: "contain" }}
@@ -98,6 +98,12 @@ const ProductDetail = () => {
           <Divider sx={{ my: 2 }} />
           <Typography variant="body1" paragraph>
             {product.description}
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Category: {product.category}
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Available Stock: {product.stock}
           </Typography>
           <Box sx={{ mt: 2 }}>
             <Button
