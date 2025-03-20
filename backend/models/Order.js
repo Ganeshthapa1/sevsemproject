@@ -6,7 +6,7 @@ const orderSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  items: [
+  orderItems: [
     {
       product: {
         type: mongoose.Schema.Types.ObjectId,
@@ -17,6 +17,23 @@ const orderSchema = new mongoose.Schema({
         type: Number,
         required: true,
         min: 1
+      },
+      price: {
+        type: Number,
+        required: true
+      },
+      bargainRequest: {
+        proposedPrice: {
+          type: Number
+        },
+        status: {
+          type: String,
+          enum: ['pending', 'accepted', 'rejected'],
+          default: 'pending'
+        },
+        vendorResponse: {
+          type: String
+        }
       }
     }
   ],
@@ -48,15 +65,11 @@ const orderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'awaiting_bargain_approval'],
     default: 'pending'
   },
   transactionId: {
     type: String
-  },
-  bargainRequest: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'BargainRequest'
   },
   notes: String,
   createdAt: {

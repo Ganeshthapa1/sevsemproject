@@ -53,6 +53,7 @@ exports.createProduct = async (req, res) => {
       category: req.body.category.trim(),
       stock: Number(req.body.stock),
       images: imagePaths,
+      vendor: req.user._id // Add vendor ID from authenticated user
     });
 
     await product.save();

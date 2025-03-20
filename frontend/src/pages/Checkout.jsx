@@ -19,6 +19,8 @@ import axios from "axios";
 // Import removed payment logos - no longer needed in checkout
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+// Make sure API_URL doesn't have a trailing /api
+const BASE_URL = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -59,7 +61,7 @@ const Checkout = () => {
   const fetchCart = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/api/cart`, {
+      const response = await axios.get(`${BASE_URL}/cart`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCart(response.data);
@@ -139,7 +141,7 @@ const Checkout = () => {
       console.log("Sending order data:", orderData);
       
       // Create the order without payment info
-      const response = await axios.post(`${API_URL}/api/orders`, orderData, {
+      const response = await axios.post(`${BASE_URL}/orders`, orderData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -148,16 +150,18 @@ const Checkout = () => {
       console.log("Order response:", response.data);
       
       // Clear cart after successful order
-      await axios.delete(`${API_URL}/api/cart/clear`, {
+      await axios.delete(`${BASE_URL}/cart/clear`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
       
-      // Navigate to order confirmation
-      navigate("/order-confirmation", { 
+      // Navigate to orders page with success message
+      navigate("/orders", { 
         state: { 
-          order: response.data, 
+          orderSuccess: true,
+          orderId: response.data._id,
+          orderNumber: response.data.orderNumber,
           isBargaining: formData.isBargaining 
         } 
       });

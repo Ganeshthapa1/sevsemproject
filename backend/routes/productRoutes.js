@@ -5,44 +5,19 @@ const { protect, admin, vendor } = require("../middleware/authMiddleware");
 const upload = require('../middleware/uploadMiddleware');
 const { Product } = require('../models');
 
-// Get all products
+// Get all products (public)
 router.get("/", productController.getAllProducts);
 
-// Create a new product
-router.post("/", protect, admin, upload.array('images', 5), productController.createProduct);
-
-// Get vendor's products
-router.get("/vendor", protect, vendor, async (req, res) => {
-  try {
-    const products = await Product.find({ vendor: req.user._id });
-    res.json(products);
-  } catch (error) {
-    console.error("Vendor products error:", error);
-    res.status(500).json({ message: "Error fetching vendor products", error: error.message });
-  }
-});
-
-// Get vendor products by ID
-router.get('/vendor/:vendorId', protect, vendor, async (req, res) => {
-  try {
-    const products = await Product.find({ vendor: req.params.vendorId });
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching vendor products', error: error.message });
-  }
-});
-
-// Get a single product
+// Get a single product (public)
 router.get("/:id", productController.getProductById);
 
-// Update a product
-router.patch("/:id", protect, admin, upload.array('images', 5), productController.updateProduct);
+// Admin routes
+router.post("/admin", protect, admin, upload.array('images', 5), productController.createProduct);
+router.patch("/admin/:id", protect, admin, upload.array('images', 5), productController.updateProduct);
+router.delete("/admin/:id", protect, admin, productController.deleteProduct);
 
-// Delete a product
-router.delete("/:id", protect, admin, productController.deleteProduct);
-
-// Add product (vendor)
-router.post('/', protect, vendor, upload.array('images', 5), async (req, res) => {
+// Vendor routes
+router.post("/vendor", protect, vendor, upload.array('images', 5), async (req, res) => {
   try {
     const product = new Product({
       ...req.body,
@@ -55,8 +30,7 @@ router.post('/', protect, vendor, upload.array('images', 5), async (req, res) =>
   }
 });
 
-// Update product (vendor)
-router.put('/:id', protect, vendor, upload.array('images', 5), async (req, res) => {
+router.put("/vendor/:id", protect, vendor, upload.array('images', 5), async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     
@@ -80,8 +54,7 @@ router.put('/:id', protect, vendor, upload.array('images', 5), async (req, res) 
   }
 });
 
-// Delete product (vendor)
-router.delete('/:id', protect, vendor, async (req, res) => {
+router.delete("/vendor/:id", protect, vendor, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     
@@ -98,6 +71,17 @@ router.delete('/:id', protect, vendor, async (req, res) => {
     res.json({ message: 'Product removed' });
   } catch (error) {
     res.status(400).json({ message: 'Error deleting product', error: error.message });
+  }
+});
+
+// Get vendor's products
+router.get("/vendor/products", protect, vendor, async (req, res) => {
+  try {
+    const products = await Product.find({ vendor: req.user._id });
+    res.json(products);
+  } catch (error) {
+    console.error("Vendor products error:", error);
+    res.status(500).json({ message: "Error fetching vendor products", error: error.message });
   }
 });
 

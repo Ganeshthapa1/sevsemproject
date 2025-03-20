@@ -36,6 +36,7 @@ exports.register = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        profilePhoto: user.profilePhoto
       },
     });
   } catch (error) {
@@ -83,6 +84,7 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
         isActive: user.isActive,
+        profilePhoto: user.profilePhoto
       },
     });
   } catch (error) {
@@ -108,6 +110,7 @@ exports.getUserProfile = async (req, res) => {
       email: user.email,
       role: user.role,
       isActive: user.isActive,
+      profilePhoto: user.profilePhoto
     });
   } catch (error) {
     console.error("Get profile error:", error);

@@ -11,6 +11,7 @@ import {
   MenuItem,
   IconButton,
   ListItemIcon,
+  Avatar,
 } from "@mui/material";
 import { styled, alpha } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
@@ -21,6 +22,7 @@ import ListAltIcon from "@mui/icons-material/ListAlt";
 import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from '../context/AuthContext';
 
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
@@ -64,42 +66,8 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { user, logout } = useAuth();
   const [anchorEl, setAnchorEl] = useState(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-
-    // Add event listener for storage changes
-    const handleStorageChange = () => {
-      const updatedUser = localStorage.getItem("user");
-      if (updatedUser) {
-        setUser(JSON.parse(updatedUser));
-      } else {
-        setUser(null);
-      }
-    };
-
-    // Add event listener for custom login event
-    const handleLogin = () => {
-      const updatedUser = localStorage.getItem("user");
-      if (updatedUser) {
-        setUser(JSON.parse(updatedUser));
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("userLogin", handleLogin);
-
-    // Cleanup listeners on unmount
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("userLogin", handleLogin);
-    };
-  }, []);
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -110,9 +78,7 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUser(null);
+    logout();
     handleClose();
     navigate("/");
   };
@@ -190,7 +156,15 @@ const Navbar = () => {
                   onClick={handleMenu}
                   color="inherit"
                 >
-                  <AccountCircleIcon />
+                  {user.profilePhoto ? (
+                    <Avatar
+                      src={user.profilePhoto}
+                      alt={user.name}
+                      sx={{ width: 32, height: 32 }}
+                    />
+                  ) : (
+                    <AccountCircleIcon />
+                  )}
                 </IconButton>
                 <Menu
                   id="menu-appbar"

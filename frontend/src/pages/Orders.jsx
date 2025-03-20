@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Container,
   Paper,
@@ -73,7 +73,7 @@ const OrderRow = ({ order, onPaymentUpdate }) => {
     if (order.status === 'awaiting_bargain_approval') {
       return 'Awaiting Price Approval';
     }
-    return order.status.replace(/_/g, ' ').toUpperCase();
+    return order.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const formatDate = (dateString) => {
@@ -221,6 +221,13 @@ const OrderRow = ({ order, onPaymentUpdate }) => {
           ) : (
             `Rs. ${order.totalAmount.toLocaleString()}`
           )}
+        </TableCell>
+        <TableCell>
+          <Chip 
+            label={getStatusText(order)}
+            color={getStatusColor(order.status)}
+            size="small"
+          />
         </TableCell>
         <TableCell>
           {renderPaymentStatus()}
@@ -392,6 +399,7 @@ const OrderRow = ({ order, onPaymentUpdate }) => {
 
 const Orders = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -400,8 +408,21 @@ const Orders = () => {
   const [paymentSeverity, setPaymentSeverity] = useState("success");
   const [showVerifyButton, setShowVerifyButton] = useState(false);
   const [verifyingAllPayments, setVerifyingAllPayments] = useState(false);
+  const [orderSuccessMessage, setOrderSuccessMessage] = useState("");
 
   useEffect(() => {
+    // Check for newly placed order
+    if (location.state?.orderSuccess) {
+      const orderNumber = location.state.orderNumber || location.state.orderId;
+      if (location.state.isBargaining) {
+        setOrderSuccessMessage(`Your order #${orderNumber} has been placed with a bargain request. The seller will review your price proposal soon.`);
+      } else {
+        setOrderSuccessMessage(`Your order #${orderNumber} has been successfully placed!`);
+      }
+      // Clear the state to prevent showing the message on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     // Check for payment status in URL
     const params = new URLSearchParams(window.location.search);
     const paymentStatus = params.get('payment');
@@ -434,26 +455,16 @@ const Orders = () => {
   }, []);
 
   const fetchOrders = async () => {
-    if (!isAuthenticated()) {
-      navigate("/login");
-      return;
-    }
-    
-    setLoading(true);
-    setError("");
-    
     try {
-      console.log('Fetching orders from:', `${API_URL}/orders/user`);
+      setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/orders/user`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await axios.get(`${API_URL}/orders/myorders`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      
-      console.log('Orders response:', response.data);
       setOrders(response.data);
     } catch (error) {
       console.error("Error fetching orders:", error);
-      setError("Failed to load orders. Please try again.");
+      setError("Failed to fetch orders. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -537,6 +548,16 @@ const Orders = () => {
       <Typography variant="h4" gutterBottom>
         My Orders
       </Typography>
+
+      {orderSuccessMessage && (
+        <Alert 
+          severity="success" 
+          sx={{ mb: 3 }}
+          onClose={() => setOrderSuccessMessage("")}
+        >
+          {orderSuccessMessage}
+        </Alert>
+      )}
 
       {paymentMessage && (
         <Alert 
