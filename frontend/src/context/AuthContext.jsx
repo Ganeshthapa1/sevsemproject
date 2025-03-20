@@ -101,8 +101,11 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError('');
     try {
-      console.log('Logging in at:', `${API_URL}/auth/login`);
-      const res = await axios.post(`${API_URL}/auth/login`, userData);
+      // Make sure we're using the correct URL format
+      const loginUrl = `${API_URL}/auth/login`;
+      console.log('Logging in at:', loginUrl);
+      
+      const res = await axios.post(loginUrl, userData);
       
       console.log('Login response:', res.data);
       localStorage.setItem('token', res.data.token);
@@ -113,8 +116,7 @@ export const AuthProvider = ({ children }) => {
       
       setUser(res.data.user);
       
-      // Dispatch login event for other components to react
-      window.dispatchEvent(new Event('userLogin'));
+      // No redirection here - handled by Login component
       
       return true;
     } catch (err) {
@@ -144,6 +146,11 @@ export const AuthProvider = ({ children }) => {
     return user?.role === 'admin';
   };
 
+  // Check if user is vendor
+  const isVendor = () => {
+    return user?.role === 'vendor';
+  };
+
   // Get token for external use
   const getToken = () => {
     return localStorage.getItem('token');
@@ -160,6 +167,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         isAuthenticated,
         isAdmin,
+        isVendor,
         getToken
       }}
     >

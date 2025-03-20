@@ -23,6 +23,7 @@ const auth = async (req, res, next) => {
       name: user.name,
       email: user.email,
       isAdmin: user.role === "admin",
+      isVendor: user.role === "vendor",
     };
 
     next();

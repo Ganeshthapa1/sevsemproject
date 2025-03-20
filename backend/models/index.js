@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["user", "admin"],
+    enum: ["user", "admin", "vendor"],
     default: "user",
   },
   isActive: {
@@ -84,6 +84,11 @@ const productSchema = new mongoose.Schema({
   category: { type: String, required: true },
   images: [{ type: String, required: true }],
   stock: { type: Number, required: true },
+  vendor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: false
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -106,6 +111,10 @@ const orderSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "Product",
           required: true,
+        },
+        vendor: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
         },
         quantity: {
           type: Number,
@@ -235,6 +244,9 @@ const bargainSchema = new mongoose.Schema(
       default: "pending",
     },
     adminResponse: {
+      type: String,
+    },
+    vendorResponse: {
       type: String,
     },
   },

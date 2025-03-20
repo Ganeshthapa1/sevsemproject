@@ -13,22 +13,28 @@ import {
   Alert,
   CircularProgress,
   FormControlLabel,
+  Select,
+  Button,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Snackbar,
 } from "@mui/material";
 import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/api/auth/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(`/auth/users`);
       setUsers(response.data);
       setLoading(false);
     } catch (error) {
@@ -44,13 +50,9 @@ const AdminUsers = () => {
 
   const handleToggleStatus = async (userId, currentStatus) => {
     try {
-      const token = localStorage.getItem("token");
       await axios.patch(
-        `${API_URL}/api/auth/users/${userId}/toggle-status`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `/auth/users/${userId}/toggle-status`,
+        {}
       );
       // Update the local state
       setUsers(
@@ -62,6 +64,28 @@ const AdminUsers = () => {
       console.error("Error toggling user status:", error);
       setError("Failed to update user status");
     }
+  };
+
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      await axios.put(`/auth/users/${userId}/role`, { role: newRole });
+      setSnackbar({
+        open: true,
+        message: 'Role updated successfully',
+        severity: 'success'
+      });
+      fetchUsers(); // Refresh the users list
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Error updating role',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   if (loading) {
@@ -97,7 +121,18 @@ const AdminUsers = () => {
               <TableRow key={user._id}>
                 <TableCell>{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
-                <TableCell>{user.role}</TableCell>
+                <TableCell>
+                  <FormControl size="small" fullWidth>
+                    <Select
+                      value={user.role}
+                      onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                    >
+                      <MenuItem value="user">User</MenuItem>
+                      <MenuItem value="admin">Admin</MenuItem>
+                      <MenuItem value="vendor">Vendor</MenuItem>
+                    </Select>
+                  </FormControl>
+                </TableCell>
                 <TableCell>{user.isActive ? "Active" : "Disabled"}</TableCell>
                 <TableCell>
                   <FormControlLabel
@@ -118,6 +153,20 @@ const AdminUsers = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseSnackbar}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -40,6 +40,9 @@ const Login = () => {
         if (userObj && userObj.role === "admin") {
           console.log("Redirecting to admin dashboard");
           navigate("/admin");
+        } else if (userObj && userObj.role === "vendor") {
+          console.log("Redirecting to vendor dashboard");
+          navigate("/vendor/dashboard");
         } else {
           console.log("Redirecting to:", from);
           navigate(from);

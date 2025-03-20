@@ -32,8 +32,6 @@ import BlockIcon from "@mui/icons-material/Block";
 import PriceChangeIcon from "@mui/icons-material/PriceChange";
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
-
 const statusIcons = {
   pending: <PendingIcon />,
   packaging: <InventoryIcon />,
@@ -60,13 +58,9 @@ const Row = ({ order, onStatusChange }) => {
     const newStatus = event.target.value;
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       await axios.patch(
-        `${API_URL}/api/orders/${order._id}/status`,
-        { status: newStatus },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `/orders/${order._id}/status`,
+        { status: newStatus }
       );
       onStatusChange();
     } catch (error) {
@@ -219,7 +213,7 @@ const Row = ({ order, onStatusChange }) => {
                                   {item.product.images && item.product.images.length > 0 ? (
                                     <Box
                                       component="img"
-                                      src={`${API_URL}${item.product.images[0]}`}
+                                      src={`${item.product.images[0]}`}
                                       alt={item.product.name}
                                       sx={{
                                         width: 40,
@@ -374,9 +368,7 @@ const AdminOrders = () => {
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/api/orders/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(`/orders/all`);
       console.log("Orders data:", response.data); // Debugging: Log the response data
       setOrders(response.data);
       setLoading(false);

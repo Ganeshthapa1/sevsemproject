@@ -13,19 +13,21 @@
     "coverage": "jest --coverage"
   },
   "dependencies": {
-    "@emotion/react": "^11.11.3",
-    "@emotion/styled": "^11.11.0",
+    "@chakra-ui/react": "^3.13.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^5.15.11",
     "@mui/material": "^5.15.11",
     "@mui/system": "^5.15.11",
     "@mui/utils": "^5.15.11",
     "@rollup/rollup-win32-x64-msvc": "^4.36.0",
     "axios": "^1.6.0",
+    "framer-motion": "^12.5.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.3",
     "react-router-dom": "^6.22.1",
-    "recharts": "^2.12.0"
+    "recharts": "^2.15.1"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.24.0",

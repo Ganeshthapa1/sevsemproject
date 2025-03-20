@@ -11,7 +11,7 @@ import {
   CircularProgress,
   Chip
 } from "@mui/material";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import axios from "axios";
 
@@ -20,17 +20,14 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 const OrderConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { id } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [verifyingPayment, setVerifyingPayment] = useState(false);
   
   // Get data either from location state (direct from checkout) or use orderId to fetch
   const receivedOrder = location.state?.order;
-  const orderId = id || location.state?.order?._id || location.state?.orderId;
+  const orderId = location.state?.order?._id || location.state?.orderId;
   const isBargaining = location.state?.isBargaining;
-  const paymentQueryParam = new URLSearchParams(location.search).get('payment');
 
   useEffect(() => {
     if (!orderId && !receivedOrder) {
@@ -42,12 +39,6 @@ const OrderConfirmation = () => {
     if (receivedOrder) {
       setOrder(receivedOrder);
       setLoading(false);
-      
-      // If this is likely an eSewa callback, check if we need to verify payment
-      if (paymentQueryParam === 'success') {
-        verifyEsewaPayment(receivedOrder._id);
-      }
-      
       return;
     }
 
@@ -66,11 +57,6 @@ const OrderConfirmation = () => {
           });
           setOrder(response.data);
           setLoading(false);
-          
-          // If this is likely an eSewa callback, check if we need to verify payment
-          if (paymentQueryParam === 'success') {
-            verifyEsewaPayment(response.data._id);
-          }
         } catch (error) {
           console.error("Error fetching order by ID:", error);
           
@@ -83,11 +69,6 @@ const OrderConfirmation = () => {
             const foundOrder = allOrdersResponse.data.find(o => o._id === orderId);
             if (foundOrder) {
               setOrder(foundOrder);
-              
-              // If this is likely an eSewa callback, check if we need to verify payment
-              if (paymentQueryParam === 'success') {
-                verifyEsewaPayment(foundOrder._id);
-              }
             } else {
               setError("Order not found. Please check your orders page.");
             }
@@ -106,53 +87,7 @@ const OrderConfirmation = () => {
     };
 
     fetchOrder();
-  }, [orderId, receivedOrder, navigate, paymentQueryParam]);
-  
-  // Check for pending eSewa payment and verify it
-  const verifyEsewaPayment = async (orderId) => {
-    // Check if this order was recently initiated for eSewa payment
-    const pendingOrderId = localStorage.getItem('esewa_pending_order_id');
-    const pendingTransactionId = localStorage.getItem('esewa_pending_transaction_id');
-    
-    if (!pendingOrderId || !pendingTransactionId || orderId !== pendingOrderId) {
-      return; // Not a pending eSewa payment we were tracking
-    }
-    
-    setVerifyingPayment(true);
-    
-    try {
-      const token = localStorage.getItem('token');
-      // Call the verify endpoint to ensure payment status is updated
-      const verifyResponse = await axios.post(
-        `${API_URL}/api/payments/esewa/verify`,
-        { 
-          orderId: orderId,
-          refId: pendingTransactionId
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-      
-      if (verifyResponse.data.success) {
-        // Refresh order details to get the updated payment status
-        const refreshResponse = await axios.get(`${API_URL}/api/orders/${orderId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        setOrder(refreshResponse.data);
-        
-        // Clear the pending payment info
-        localStorage.removeItem('esewa_pending_order_id');
-        localStorage.removeItem('esewa_pending_transaction_id');
-        localStorage.removeItem('esewa_payment_timestamp');
-      }
-    } catch (error) {
-      console.error("Error verifying eSewa payment:", error);
-    } finally {
-      setVerifyingPayment(false);
-    }
-  };
+  }, [orderId, receivedOrder, navigate]);
   
   // Get appropriate message based on order status
   const getConfirmationMessage = () => {
@@ -189,17 +124,6 @@ const OrderConfirmation = () => {
         <Typography>
           Your order number is: <strong>{order.orderNumber || order._id}</strong>
         </Typography>
-        {order.paymentStatus === 'completed' && (
-          <Alert severity="success" sx={{ mt: 2 }}>
-            <Typography>Your payment has been completed successfully!</Typography>
-          </Alert>
-        )}
-        {paymentQueryParam === 'success' && verifyingPayment && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-            <CircularProgress size={24} />
-            <Typography sx={{ ml: 1 }}>Verifying payment...</Typography>
-          </Box>
-        )}
       </Box>
     );
   };
@@ -265,22 +189,6 @@ const OrderConfirmation = () => {
                 </Box>
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" color="text.secondary">
-                    Payment Status:
-                  </Typography>
-                  <Chip
-                    label={order.paymentStatus?.toUpperCase() || "PENDING"}
-                    color={
-                      order.paymentStatus === "completed"
-                        ? "success"
-                        : order.paymentStatus === "failed"
-                        ? "error"
-                        : "warning"
-                    }
-                    size="small"
-                  />
-                </Box>
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
                     Date:
                   </Typography>
                   <Typography>
@@ -297,15 +205,6 @@ const OrderConfirmation = () => {
                       Payment Method:
                     </Typography>
                     <Typography>{order.paymentMethod.toUpperCase()}</Typography>
-                    {order.paymentStatus === "completed" && order.paymentDetails?.paidAt && (
-                      <Typography variant="body2" color="text.secondary">
-                        Paid on: {new Date(order.paymentDetails.paidAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </Typography>
-                    )}
                   </Box>
                 )}
               </Grid>

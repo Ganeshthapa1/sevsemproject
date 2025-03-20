@@ -71,11 +71,31 @@ exports.getUserBargains = async (req, res) => {
   }
 };
 
-// Update bargain status (admin only)
+// Get vendor's bargain requests
+exports.getVendorBargains = async (req, res) => {
+  try {
+    // Find all products owned by the vendor
+    const vendorProducts = await Product.find({ vendor: req.user._id });
+    const productIds = vendorProducts.map(product => product._id);
+
+    // Find all bargains for these products
+    const bargains = await Bargain.find({ product: { $in: productIds } })
+      .populate("product", "name price")
+      .populate("user", "name email")
+      .sort({ createdAt: -1 });
+
+    res.json(bargains);
+  } catch (error) {
+    console.error("Get vendor bargains error:", error);
+    res.status(500).json({ message: "Error fetching vendor's bargain requests" });
+  }
+};
+
+// Update bargain status (admin or vendor)
 exports.updateBargainStatus = async (req, res) => {
   try {
     const { bargainId } = req.params;
-    const { status, adminResponse } = req.body;
+    const { status, adminResponse, vendorResponse } = req.body;
 
     if (!['accepted', 'rejected'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status. Must be accepted or rejected' });
@@ -90,8 +110,22 @@ exports.updateBargainStatus = async (req, res) => {
       return res.status(400).json({ message: 'Cannot update a bargain that is not pending' });
     }
 
+    // Check if user is admin or the vendor who owns the product
+    const product = await Product.findById(bargain.product);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    if (!req.user.isAdmin && product.vendor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update this bargain' });
+    }
+
     bargain.status = status;
-    bargain.adminResponse = adminResponse;
+    if (req.user.isAdmin) {
+      bargain.adminResponse = adminResponse;
+    } else {
+      bargain.vendorResponse = vendorResponse;
+    }
     await bargain.save();
 
     // Update any orders that are waiting on this bargain

@@ -19,6 +19,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import { Link, useNavigate } from "react-router-dom";
 
 const Search = styled("div")(({ theme }) => ({
@@ -148,6 +149,28 @@ const Navbar = () => {
           <Box sx={{ flexGrow: 1 }} />
 
           <Box sx={{ display: "flex", alignItems: "center" }}>
+            {user && user.role === "admin" && (
+              <Button
+                color="inherit"
+                component={Link}
+                to="/admin"
+                startIcon={<DashboardIcon />}
+              >
+                Admin
+              </Button>
+            )}
+            
+            {user && user.role === "vendor" && (
+              <Button
+                color="inherit"
+                component={Link}
+                to="/vendor/dashboard"
+                startIcon={<DashboardIcon />}
+              >
+                Vendor Dashboard
+              </Button>
+            )}
+
             <Button
               color="inherit"
               component={Link}
@@ -184,6 +207,19 @@ const Navbar = () => {
                   open={Boolean(anchorEl)}
                   onClose={handleClose}
                 >
+                  {user && user.role === "vendor" && (
+                    <MenuItem
+                      component={Link}
+                      to="/vendor/dashboard"
+                      onClick={handleClose}
+                    >
+                      <ListItemIcon>
+                        <DashboardIcon fontSize="small" />
+                      </ListItemIcon>
+                      Vendor Dashboard
+                    </MenuItem>
+                  )}
+                  
                   <MenuItem
                     component={Link}
                     to="/profile"

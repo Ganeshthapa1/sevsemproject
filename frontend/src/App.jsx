@@ -38,6 +38,8 @@ import Orders from "./pages/Orders";
 import OrderPayment from "./pages/OrderPayment";
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import VendorRoute from './components/routes/VendorRoute';
+import VendorDashboard from './pages/VendorDashboard';
 
 // Conditionally import the test page only in development
 const EsewaTestPage = import.meta.env.DEV 
@@ -86,10 +88,11 @@ const ProtectedRoute = ({ children }) => {
 const AppContent = () => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
+  const isVendorRoute = location.pathname.startsWith("/vendor/dashboard");
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isAdmin = user?.role === "admin";
-  const showFooter = !(isAdminRoute && isAdmin);
-  const showNavbar = !(isAdminRoute && isAdmin);
+  const showFooter = !(isAdminRoute && isAdmin) && !isVendorRoute;
+  const showNavbar = !(isAdminRoute && isAdmin) && !isVendorRoute;
 
   return (
     <Box
@@ -172,6 +175,14 @@ const AppContent = () => {
               } 
             />
           )}
+          <Route
+            path="/vendor/dashboard/*"
+            element={
+              <VendorRoute>
+                <VendorDashboard />
+              </VendorRoute>
+            }
+          />
         </Routes>
       </Box>
       {showFooter && <Footer />}

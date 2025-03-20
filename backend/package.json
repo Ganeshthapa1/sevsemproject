@@ -7,7 +7,8 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "jest",
-    "seed": "node scripts/seedUsers.js"
+    "seed": "node scripts/seedUsers.js",
+    "seed:vendor": "node scripts/seedVendor.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

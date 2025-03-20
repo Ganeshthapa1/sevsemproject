@@ -21,8 +21,6 @@ import {
 } from "@mui/material";
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
-
 const AdminBargains = () => {
   const [bargains, setBargains] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,9 +39,7 @@ const AdminBargains = () => {
         return;
       }
 
-      const response = await axios.get(`${API_URL}/api/bargains/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(`/bargains/all`);
       console.log("Bargains data:", response.data);
       setBargains(response.data);
       setLoading(false);
@@ -73,13 +69,10 @@ const AdminBargains = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
-        `${API_URL}/api/bargains/${selectedBargain._id}/status`,
+        `/bargains/${selectedBargain._id}/status`,
         {
           status,
           adminResponse: response,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
         }
       );
 

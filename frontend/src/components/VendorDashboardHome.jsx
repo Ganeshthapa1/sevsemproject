@@ -1,77 +1,66 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
   Paper,
   Typography,
+  CircularProgress,
+  Alert,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  Chip,
-  Button,
-  CardActions,
-} from "@mui/material";
+} from '@mui/material';
 import {
-  PieChart,
-  Pie,
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
+  CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
   Cell,
-  LineChart,
-  CartesianGrid,
-  Line,
-} from "recharts";
-import PeopleIcon from "@mui/icons-material/People";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
-import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
-import InventoryIcon from "@mui/icons-material/Inventory";
-import BargainIcon from "@mui/icons-material/LocalOffer";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+} from 'recharts';
+import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
-
-const AdminDashboardHome = () => {
+const VendorDashboardHome = () => {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalRevenue: 0,
-    totalUsers: 0,
     totalProducts: 0,
+    pendingOrders: 0,
     recentOrders: [],
-    salesByCategory: [],
+    salesByProduct: [],
     monthlySales: [],
     orderStatusDistribution: [],
   });
-  const navigate = useNavigate();
+
+  // Set the API URL with a fallback
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [ordersRes, usersRes, productsRes] = await Promise.all([
-          axios.get('/orders/all'),
-          axios.get('/auth/users'),
-          axios.get('/products'),
+        console.log('Fetching vendor dashboard data...');
+        const [ordersRes, productsRes] = await Promise.all([
+          axios.get(`${API_URL}/orders/vendor`),
+          axios.get(`${API_URL}/products/vendor`),
         ]);
 
+        console.log('Orders data:', ordersRes.data);
+        console.log('Products data:', productsRes.data);
+
         const orders = ordersRes.data;
-        const users = usersRes.data;
         const products = productsRes.data;
 
         // Calculate total revenue
@@ -82,11 +71,13 @@ const AdminDashboardHome = () => {
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
           .slice(0, 5);
 
-        // Calculate sales by category
-        const salesByCategory = products.map(product => ({
-          name: product.category,
+        // Calculate sales by product
+        const salesByProduct = products.map(product => ({
+          name: product.name,
           value: orders.reduce((sum, order) => {
-            const orderItem = order.items.find(item => item.product._id === product._id);
+            const orderItem = order.items?.find(item => 
+              item.product?._id === product._id
+            );
             return sum + (orderItem ? orderItem.quantity * orderItem.price : 0);
           }, 0),
         }));
@@ -113,13 +104,16 @@ const AdminDashboardHome = () => {
           value,
         }));
 
+        // Calculate pending orders
+        const pendingOrders = orders.filter(order => order.status === 'pending').length;
+
         setStats({
           totalOrders: orders.length,
           totalRevenue,
-          totalUsers: users.length,
           totalProducts: products.length,
+          pendingOrders,
           recentOrders,
-          salesByCategory,
+          salesByProduct,
           monthlySales,
           orderStatusDistribution,
         });
@@ -132,102 +126,27 @@ const AdminDashboardHome = () => {
     };
 
     fetchDashboardData();
-  }, []);
-
-  const StatCard = ({ title, value, icon, color }) => (
-    <Card sx={{ height: "100%" }}>
-      <CardContent>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-          {icon}
-          <Typography variant="h6" component="div" sx={{ ml: 1 }}>
-            {title}
-          </Typography>
-        </Box>
-        <Typography variant="h4" component="div" sx={{ color }}>
-          {value}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
-
-  const menuItems = [
-    {
-      title: "Products",
-      icon: <InventoryIcon sx={{ fontSize: 40 }} />,
-      description: "Manage your product inventory",
-      path: "/admin/products",
-    },
-    {
-      title: "Orders",
-      icon: <ShoppingCartIcon sx={{ fontSize: 40 }} />,
-      description: "View and manage customer orders",
-      path: "/admin/orders",
-    },
-    {
-      title: "Customers",
-      icon: <PeopleIcon sx={{ fontSize: 40 }} />,
-      description: "View customer information",
-      path: "/admin/customers",
-    },
-    {
-      title: "Bargains",
-      icon: <BargainIcon sx={{ fontSize: 40 }} />,
-      description: "Manage price bargaining requests",
-      path: "/admin/bargains",
-    },
-  ];
+  }, [API_URL]);
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
         <CircularProgress />
       </Box>
     );
   }
 
   if (error) {
-    return <Alert severity="error">{error}</Alert>;
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
   }
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Admin Dashboard
-      </Typography>
       <Grid container spacing={3}>
-        {menuItems.map((item) => (
-          <Grid item xs={12} sm={6} md={3} key={item.title}>
-            <Card
-              sx={{
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                cursor: "pointer",
-                "&:hover": {
-                  boxShadow: 6,
-                },
-              }}
-              onClick={() => navigate(item.path)}
-            >
-              <CardContent sx={{ flexGrow: 1, textAlign: "center" }}>
-                <Box sx={{ color: "primary.main", mb: 2 }}>{item.icon}</Box>
-                <Typography variant="h6" gutterBottom>
-                  {item.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {item.description}
-                </Typography>
-              </CardContent>
-              <CardActions sx={{ justifyContent: "center", pb: 2 }}>
-                <Button size="small" color="primary">
-                  View
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-      <Grid container spacing={3} mt={3}>
         {/* Statistics Cards */}
         <Grid item xs={12} sm={6} md={3}>
           <Paper sx={{ p: 2, textAlign: 'center' }}>
@@ -248,17 +167,17 @@ const AdminDashboardHome = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Paper sx={{ p: 2, textAlign: 'center' }}>
             <Typography variant="h6" gutterBottom>
-              Total Users
+              Total Products
             </Typography>
-            <Typography variant="h4">{stats.totalUsers}</Typography>
+            <Typography variant="h4">{stats.totalProducts}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Paper sx={{ p: 2, textAlign: 'center' }}>
             <Typography variant="h6" gutterBottom>
-              Total Products
+              Pending Orders
             </Typography>
-            <Typography variant="h4">{stats.totalProducts}</Typography>
+            <Typography variant="h4">{stats.pendingOrders}</Typography>
           </Paper>
         </Grid>
 
@@ -312,12 +231,12 @@ const AdminDashboardHome = () => {
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
-              Sales by Category
+              Sales by Product
             </Typography>
             <BarChart
               width={500}
               height={300}
-              data={stats.salesByCategory}
+              data={stats.salesByProduct}
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
@@ -369,4 +288,4 @@ const AdminDashboardHome = () => {
   );
 };
 
-export default AdminDashboardHome;
+export default VendorDashboardHome; 

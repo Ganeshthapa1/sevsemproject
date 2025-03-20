@@ -65,4 +65,13 @@ const admin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, admin }; 
+// Vendor middleware
+const vendor = (req, res, next) => {
+  if (req.user && req.user.role === "vendor") {
+    next();
+  } else {
+    res.status(403).json({ message: "Not authorized as vendor" });
+  }
+};
+
+module.exports = { protect, admin, vendor }; 

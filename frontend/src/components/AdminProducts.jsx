@@ -77,7 +77,7 @@ const AdminProducts = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/products`);
+      const response = await axios.get(`/products`);
       setProducts(response.data);
       setLoading(false);
     } catch (error) {
@@ -178,7 +178,7 @@ const AdminProducts = () => {
 
       if (editProduct) {
         const response = await axios.patch(
-          `${API_URL}/api/products/${editProduct._id}`,
+          `/products/${editProduct._id}`,
           productFormData,
           config
         );
@@ -187,7 +187,7 @@ const AdminProducts = () => {
         );
       } else {
         const response = await axios.post(
-          `${API_URL}/api/products`,
+          `/products`,
           productFormData,
           config
         );
@@ -207,7 +207,7 @@ const AdminProducts = () => {
 
     const token = localStorage.getItem("token");
     try {
-      await axios.delete(`${API_URL}/api/products/${productId}`, {
+      await axios.delete(`/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchProducts();

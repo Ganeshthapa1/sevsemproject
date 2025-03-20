@@ -116,36 +116,6 @@ const OrderRow = ({ order, onPaymentUpdate }) => {
     }
   };
   
-  // Function to verify payment status for eSewa
-  const verifyEsewaPayment = async () => {
-    if (order.paymentMethod !== 'esewa' || order.paymentStatus === 'completed') {
-      return;
-    }
-    
-    setVerifyingPayment(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${API_URL}/api/payments/esewa/verify`,
-        { 
-          orderId: order._id,
-          refId: localStorage.getItem('esewa_pending_transaction_id') || order.transactionId
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-      
-      if (response.data.success) {
-        onPaymentUpdate(); // Refresh order data
-      }
-    } catch (error) {
-      console.error("Error verifying payment:", error);
-    } finally {
-      setVerifyingPayment(false);
-    }
-  };
-  
   // Check if order should show payment button
   const showPaymentButton = order.status !== 'awaiting_bargain_approval' && 
                           order.status !== 'cancelled' && 
@@ -154,6 +124,76 @@ const OrderRow = ({ order, onPaymentUpdate }) => {
   // Check if order had a bargain request
   const hadBargain = order.bargainRequest && order.bargainRequest.status;
   const bargainAccepted = hadBargain && order.bargainRequest.status === 'accepted';
+
+  // Add a function to manually verify a single payment
+  const verifyEsewaPayment = async () => {
+    try {
+      setVerifyingPayment(true);
+      const token = localStorage.getItem("token");
+      await axios.post(`${API_URL}/payments/verify`, {
+        orderId: order._id
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Refresh the orders list
+      onPaymentUpdate();
+    } catch (error) {
+      console.error("Error verifying payment:", error);
+    } finally {
+      setVerifyingPayment(false);
+    }
+  };
+  
+  // Update the payment status cell to show verify button when needed
+  const renderPaymentStatus = () => {
+    if (showPaymentButton) {
+      return (
+        <Button 
+          variant="contained" 
+          color="primary" 
+          size="small" 
+          onClick={handlePaymentClick}
+        >
+          Choose Payment
+        </Button>
+      );
+    } else if (order.paymentMethod) {
+      return (
+        <Box>
+          <Chip 
+            label={order.paymentMethod.toUpperCase()}
+            color={order.paymentStatus === 'completed' ? 'success' : 'default'}
+            size="small"
+          />
+          {order.paymentMethod === 'esewa' && order.paymentStatus !== 'completed' && (
+            <>
+              <Button 
+                variant="outlined" 
+                size="small" 
+                color="primary"
+                sx={{ ml: 1 }}
+                onClick={() => window.location.href = `/payment/${order._id}`}
+              >
+                Pay Now
+              </Button>
+              <Button
+                variant="text"
+                size="small"
+                color="secondary"
+                sx={{ ml: 1 }}
+                onClick={verifyEsewaPayment}
+                disabled={verifyingPayment}
+              >
+                {verifyingPayment ? "Verifying..." : "Verify Payment"}
+              </Button>
+            </>
+          )}
+        </Box>
+      );
+    }
+    return null;
+  };
 
   return (
     <>
@@ -183,67 +223,7 @@ const OrderRow = ({ order, onPaymentUpdate }) => {
           )}
         </TableCell>
         <TableCell>
-          <Chip 
-            label={getStatusText(order)}
-            color={getStatusColor(order.status)}
-            size="small"
-          />
-        </TableCell>
-        <TableCell>
-          {showPaymentButton ? (
-            <Button 
-              variant="contained" 
-              color="primary" 
-              size="small" 
-              onClick={handlePaymentClick}
-            >
-              Choose Payment
-            </Button>
-          ) : (
-            order.paymentMethod ? (
-              <Box>
-                <Chip 
-                  label={order.paymentMethod.toUpperCase()}
-                  color={order.paymentStatus === 'completed' ? 'success' : 'default'}
-                  size="small"
-                />
-                {order.paymentMethod === 'esewa' && order.paymentStatus !== 'completed' && (
-                  <>
-                    <Button 
-                      variant="outlined" 
-                      size="small" 
-                      color="primary"
-                      sx={{ ml: 1 }}
-                      onClick={() => window.location.href = `/payment/${order._id}`}
-                    >
-                      Pay Now
-                    </Button>
-                    <Button
-                      variant="text"
-                      size="small"
-                      color="secondary"
-                      sx={{ ml: 1 }}
-                      onClick={verifyEsewaPayment}
-                      disabled={verifyingPayment}
-                    >
-                      {verifyingPayment ? "Checking..." : "Verify Payment"}
-                    </Button>
-                  </>
-                )}
-                {order.paymentMethod !== 'esewa' && order.paymentMethod !== 'cod' && order.paymentStatus !== 'completed' && (
-                  <Button 
-                    variant="outlined" 
-                    size="small" 
-                    color="primary"
-                    sx={{ ml: 1 }}
-                    onClick={() => window.location.href = `/payment/${order._id}`}
-                  >
-                    Pay Now
-                  </Button>
-                )}
-              </Box>
-            ) : null
-          )}
+          {renderPaymentStatus()}
         </TableCell>
       </TableRow>
       <TableRow>
@@ -416,6 +396,42 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [paymentMessage, setPaymentMessage] = useState("");
+  const [paymentSeverity, setPaymentSeverity] = useState("success");
+  const [showVerifyButton, setShowVerifyButton] = useState(false);
+  const [verifyingAllPayments, setVerifyingAllPayments] = useState(false);
+
+  useEffect(() => {
+    // Check for payment status in URL
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    if (paymentStatus) {
+      switch (paymentStatus) {
+        case 'success':
+          setPaymentMessage("Payment completed successfully!");
+          setPaymentSeverity("success");
+          break;
+        case 'failed':
+          setPaymentMessage("Payment failed. Please try again.");
+          setPaymentSeverity("error");
+          break;
+        case 'unidentified':
+          setPaymentMessage("Payment received but order couldn't be identified automatically. Click 'Verify Payments' to check all pending orders.");
+          setPaymentSeverity("warning");
+          setShowVerifyButton(true);
+          break;
+        case 'manual-verification-needed':
+          setPaymentMessage("Payment received but needs manual verification. Click 'Verify Payments' to check all your pending payments.");
+          setPaymentSeverity("warning");
+          setShowVerifyButton(true);
+          break;
+        default:
+          setPaymentMessage("");
+      }
+      // Clear the URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const fetchOrders = async () => {
     if (!isAuthenticated()) {
@@ -440,6 +456,29 @@ const Orders = () => {
       setError("Failed to load orders. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to verify all pending payments
+  const verifyAllPendingPayments = async () => {
+    try {
+      setVerifyingAllPayments(true);
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_URL}/payments/verify-all-pending`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Refresh orders list
+      fetchOrders();
+      setPaymentMessage("All pending payments have been verified!");
+      setPaymentSeverity("success");
+      setShowVerifyButton(false);
+    } catch (error) {
+      console.error('Error verifying payments:', error);
+      setPaymentMessage("Failed to verify payments. Please contact support.");
+      setPaymentSeverity("error");
+    } finally {
+      setVerifyingAllPayments(false);
     }
   };
 
@@ -498,6 +537,28 @@ const Orders = () => {
       <Typography variant="h4" gutterBottom>
         My Orders
       </Typography>
+
+      {paymentMessage && (
+        <Alert 
+          severity={paymentSeverity} 
+          sx={{ mb: 3 }}
+          onClose={() => setPaymentMessage("")}
+          action={
+            showVerifyButton && (
+              <Button 
+                color="inherit" 
+                size="small"
+                disabled={verifyingAllPayments}
+                onClick={verifyAllPendingPayments}
+              >
+                {verifyingAllPayments ? "Verifying..." : "Verify Payments"}
+              </Button>
+            )
+          }
+        >
+          {paymentMessage}
+        </Alert>
+      )}
 
       <TableContainer component={Paper}>
         <Table aria-label="collapsible table">

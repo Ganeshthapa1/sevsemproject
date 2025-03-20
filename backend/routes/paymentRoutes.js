@@ -6,7 +6,9 @@ const {
     esewaPaymentSuccess, 
     esewaPaymentFailure,
     verifyEsewaPayment,
-    generateEsewaSignature
+    generateEsewaSignature,
+    verifyPayment,
+    verifyAllPendingPayments
 } = require("../controllers/paymentController");
 
 // Initialize eSewa payment (requires authentication)
@@ -18,6 +20,10 @@ router.get("/esewa/failure", esewaPaymentFailure);
 
 // Verify payment (requires authentication)
 router.post("/esewa/verify", auth, verifyEsewaPayment);
+
+// Manual payment verification endpoints
+router.post('/verify', auth, verifyPayment);
+router.post('/verify-all-pending', auth, verifyAllPendingPayments);
 
 // Test endpoint for eSewa signature verification
 router.post("/esewa/test-signature", (req, res) => {
