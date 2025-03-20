@@ -38,8 +38,11 @@ import Orders from "./pages/Orders";
 import OrderPayment from "./pages/OrderPayment";
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
-import VendorRoute from './components/routes/VendorRoute';
-import VendorDashboard from './pages/VendorDashboard';
+
+// Conditionally import the test page only in development
+const EsewaTestPage = import.meta.env.DEV 
+  ? React.lazy(() => import('./pages/EsewaTestPage')) 
+  : null;
 
 // Create a theme instance
 const theme = createTheme({
@@ -158,7 +161,6 @@ const AppContent = () => {
             }
           />
           <Route path="/payment/:orderId" element={<PrivateRoute><OrderPayment /></PrivateRoute>} />
-<<<<<<< HEAD
           
           {/* Development-only routes */}
           {import.meta.env.DEV && EsewaTestPage && (
@@ -171,16 +173,6 @@ const AppContent = () => {
               } 
             />
           )}
-          <Route
-            path="/vendor/dashboard/*"
-            element={
-              <VendorRoute>
-                <VendorDashboard />
-              </VendorRoute>
-            }
-          />
-=======
->>>>>>> parent of 0650841 (asdfdfdf)
         </Routes>
       </Box>
       {showFooter && <Footer />}

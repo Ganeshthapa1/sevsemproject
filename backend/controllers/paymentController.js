@@ -133,6 +133,7 @@ exports.initEsewaPayment = async (req, res) => {
 exports.esewaPaymentSuccess = async (req, res) => {
   try {
 <<<<<<< HEAD
+<<<<<<< HEAD
     console.log("eSewa success callback received:", req.query);
     console.log("Request headers:", req.headers);
     console.log("Full success URL path:", req.originalUrl);
@@ -278,6 +279,14 @@ exports.esewaPaymentSuccess = async (req, res) => {
       return res.status(400).send('<h1>Invalid payment response</h1><p>Please go back to the application.</p>');
     }
     
+=======
+    const { transaction_uuid, status, refId } = req.query;
+    
+    if (!transaction_uuid) {
+      return res.status(400).send('<h1>Invalid payment response</h1><p>Please go back to the application.</p>');
+    }
+    
+>>>>>>> parent of 0650841 (asdfdfdf)
     // Find the order by transaction ID directly
     const order = await Order.findOne({ transactionId: transaction_uuid });
     
@@ -298,6 +307,9 @@ exports.esewaPaymentSuccess = async (req, res) => {
     
     // Redirect to order confirmation
     res.redirect(`${FRONTEND_URL}/order-confirmation/${order._id}?payment=success`);
+<<<<<<< HEAD
+>>>>>>> parent of 0650841 (asdfdfdf)
+=======
 >>>>>>> parent of 0650841 (asdfdfdf)
     
   } catch (error) {

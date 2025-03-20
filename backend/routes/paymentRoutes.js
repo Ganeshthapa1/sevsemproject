@@ -6,10 +6,14 @@ const {
     esewaPaymentSuccess, 
     esewaPaymentFailure,
 <<<<<<< HEAD
+<<<<<<< HEAD
     verifyEsewaPayment,
     generateEsewaSignature,
     verifyPayment,
     verifyAllPendingPayments
+=======
+    verifyEsewaPayment
+>>>>>>> parent of 0650841 (asdfdfdf)
 =======
     verifyEsewaPayment
 >>>>>>> parent of 0650841 (asdfdfdf)
@@ -25,6 +29,7 @@ router.get("/esewa/failure", esewaPaymentFailure);
 // Verify payment (requires authentication)
 router.post("/esewa/verify", auth, verifyEsewaPayment);
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 // Manual payment verification endpoints
 router.post('/verify', auth, verifyPayment);
@@ -78,6 +83,8 @@ router.post("/esewa/test-signature", (req, res) => {
   }
 });
 
+=======
+>>>>>>> parent of 0650841 (asdfdfdf)
 =======
 >>>>>>> parent of 0650841 (asdfdfdf)
 // Debug endpoint for environment variables
